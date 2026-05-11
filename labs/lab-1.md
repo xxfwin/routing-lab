@@ -4,16 +4,16 @@ title: "Lab 7-1: Configuring BGP with Default Routing"
 lab_number: 7
 duration: "60 minutes"
 objectives:
-- Configure BGP peering between an enterprise boundary router and two ISP routers
-- Advertise enterprise networks to ISPs while filtering transit routes
-- Implement floating static routes for primary/backup default gateway redundancy
-- Propagate a default route into the BGP domain using the default-originate command
+  - Configure BGP peering between an enterprise boundary router and two ISP routers
+  - Advertise enterprise networks to ISPs while filtering transit routes
+  - Implement floating static routes for primary/backup default gateway redundancy
+  - Propagate a default route into the BGP domain using the default-originate command
 prev:
-url: /
-title: Home
+  url: /
+  title: Home
 next:
-url: /labs/lab-7-2
-title: Lab 7-2: Advanced BGP Path Control
+  url: /labs/lab-7-2
+  title: Lab 7-2: Advanced BGP Path Control
 ---
 
 ## Introduction
