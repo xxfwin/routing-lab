@@ -1,3 +1,4 @@
+---
 layout: lab
 title: "Lab 7-1: Configuring BGP with Default Routing"
 lab_number: 7
