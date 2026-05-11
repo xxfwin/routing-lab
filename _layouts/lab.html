@@ -1,0 +1,30 @@
+---
+layout: default
+---
+<div class="lab-info">
+  <p><strong>Lab:</strong> {{ page.lab_number }}</p>
+  {% if page.duration %}
+  <p><strong>Duration:</strong> {{ page.duration }}</p>
+  {% endif %}
+  {% if page.objectives %}
+  <p><strong>Objectives:</strong></p>
+  <ul>
+    {% for obj in page.objectives %}
+    <li>{{ obj }}</li>
+    {% endfor %}
+  </ul>
+  {% endif %}
+</div>
+
+{{ content }}
+
+{% if page.prev or page.next %}
+<nav class="lab-navigation">
+  {% if page.prev %}
+  <a href="{{ page.prev.url }}" class="prev">&larr; {{ page.prev.title }}</a>
+  {% endif %}
+  {% if page.next %}
+  <a href="{{ page.next.url }}" class="next">{{ page.next.title }} &rarr;</a>
+  {% endif %}
+</nav>
+{% endif %}
