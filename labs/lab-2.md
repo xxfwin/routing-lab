@@ -50,7 +50,7 @@ Your enterprise network now has dual ISP connections:
 
 Both BGP routers peer with ISP routers on separate connections, providing redundancy. OSPFv3 provides routing between BGP routers and distribution switches. 
 
-![IPv6 BGP Topology](/assets/image/IPv6_BGP.png)
+![IPv6 BGP Topology](/routing-lab/assets/image/IPv6_BGP.png)
 
 ## Task 1: Configure IPv6 Addresses on BGP Routers
 
