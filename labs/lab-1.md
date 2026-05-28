@@ -1,276 +1,520 @@
 ---
 layout: lab
-title: "Lab 7-1: Configuring BGP with Default Routing"
-lab_number: 7
-duration: "60 minutes"
+title: "Lab 1: IPv4 BGP Peering and Backup Path over OSPF"
+lab_number: 1
+duration: "90 minutes"
 objectives:
-  - Configure BGP peering between an enterprise boundary router and two ISP routers
-  - Advertise enterprise networks to ISPs while filtering transit routes
-  - Implement floating static routes for primary/backup default gateway redundancy
-  - Propagate a default route into the BGP domain using the default-originate command
+  - Configure IPv4 BGP peering with an ISP router (IX-like environment)
+  - Advertise your allocated IPv4 prefix to the internet
+  - Configure OSPF for internal routing and backup path
+  - Implement route filtering for BGP security
+  - Verify BGP routes using looking glass tools
 prev:
-  url: /
-  title: Home
+  url: /labs/lab-0
+  title: Lab 0 - Environment Setup and FRR Access
 next:
-  url: /labs/lab-7-2
-  title: Lab 7-2: Advanced BGP Path Control
+  url: /labs/lab-2
+  title: Lab 2 - IPv6 Multi-homed BGP with Backup Path over OSPFv3
 ---
 
 ## Introduction
 
-The International Travel Agency (R2-ITA) relies extensively on the Internet for sales and requires a multihomed ISP connectivity solution with fault tolerance. In this lab, you will configure BGP between the R2-ITA boundary router (AS 100) and two ISP routers (R1-ISP1 in AS 200, R3-ISP2 in AS 300). You will learn to exchange routing information, prevent unwanted transit routing using route filters, implement floating static routes for default path redundancy, and propagate a default route into BGP.
+You are a network engineer configuring your enterprise's first BGP peering with an ISP. In this lab, you will establish IPv4 BGP peering with one ISP router, advertise your allocated IPv4 prefix, and configure OSPF to provide a backup path to your main BGP router through internal routers.
+
+This lab focuses on a single-homed IPv4 BGP setup with internal redundancy through OSPF routing.
+
+<blockquote class="tip">
+The ISP in this lab behaves like an Internet Exchange (IX) - it does not provide IP transit service. You will receive routes from other peers at the IX, to increase the reliability of the network you will use OSPF to provide an alternate path to your main BGP router. Also you will use OSPF to distribute a default route to your internal network so that the traffic to other peers can be correctly routed to the main BGP router.
+</blockquote>
 
 ## Prerequisites
 
 Before starting this lab, ensure you have:
 
-- Access to an IOU/IOS simulator with three routers configured
-- Basic understanding of IP addressing and subnetting
-- Familiarity with Cisco IOS interface configuration and BGP fundamentals
-- Knowledge of administrative distance and static routing
-- The provided network addressing scheme
+- Completed Lab 0 and verified access to all network nodes
+- Received from your instructor:
+  - Your assigned **AS Number (ASN)**
+  - Your allocated **IPv4 prefix**
+  - Your **BGP router peering IP**
+  - The **ISP's AS Number** and **peering IP**
+- Basic understanding of BGP and OSPF concepts by attending or watch this weeks' lecture.
+
+---
 
 ## Lab Topology
 
-```
-[R1-ISP1 (AS 200)] ---- [R2-ITA (AS 100)] ---- [R3-ISP2 (AS 300)]
-  10.1.1.1/24               10.0.0.2/30            172.16.1.1/24
-  10.0.0.1/30               172.16.0.2/30          172.16.0.1/30
-                          / 192.168.0.1/24 (Lo0)
-                          / 192.168.1.1/24 (Lo1)
-```
+Your enterprise network consists of:
 
-| Router | Interface | IP Address/Subnet | Description |
-|--------|-----------|-------------------|-------------|
-| R1-ISP1 | Lo0 | 10.1.1.1/24 | Internet Network |
-| R1-ISP1 | S1/0 | 10.0.0.1/30 | Link to R2-ITA |
-| R2-ITA | Lo0 | 192.168.0.1/24 | Core link 1 |
-| R2-ITA | Lo1 | 192.168.1.1/24 | Core link 2 |
-| R2-ITA | S1/0 | 10.0.0.2/30 | Link to R1-ISP1 |
-| R2-ITA | S1/1 | 172.16.0.2/30 | Link to R3-ISP2 |
-| R3-ISP2 | Lo0 | 172.16.1.1/24 | Internet Network |
-| R3-ISP2 | S1/1 | 172.16.0.1/30 | Link to R2-ITA |
+- **bgp1**: Primary BGP router (connects to ISP1)
+- **bgp2**: Secondary BGP router (for internal routing, will be used in Lab 2)
+- **ds1, ds2**: Distribution switches for internal routing
 
-## Task 1: Configure Interface Addresses
+The ISP peers with your bgp1 router. Your internal network uses OSPF for routing between BGP routers and distribution switches.
 
-Create the loopback interfaces and apply IPv4 addresses to the loopback and serial interfaces on R1-ISP1, R2-ITA, and R3-ISP2. Set a clock rate on the DCE serial interfaces to enable the link.
+![IPv4 BGP Topology](/assets/image/IPv4_BGP.png)
+
+## Task 1: Configure IPv4 Addresses on BGP Routers
+
+### Configure bgp1 Interfaces
+
+Connect to bgp1:
 
 ```bash
-! R1-ISP1
-R1-ISP1(config)# interface Lo0
-R1-ISP1(config-if)# description R1-ISP1 Internet Network
-R1-ISP1(config-if)# ip address 10.1.1.1 255.255.255.0
-R1-ISP1(config-if)# exit
-R1-ISP1(config)# interface Serial1/0
-R1-ISP1(config-if)# description R1-ISP1 -> R2-ITA
-R1-ISP1(config-if)# ip address 10.0.0.1 255.255.255.252
-R1-ISP1(config-if)# clock rate 128000
-R1-ISP1(config-if)# no shutdown
-R1-ISP1(config-if)# end
-
-! R2-ITA
-R2-ITA(config)# interface Lo0
-R2-ITA(config-if)# description Core router network link 1
-R2-ITA(config-if)# ip address 192.168.0.1 255.255.255.0
-R2-ITA(config-if)# exit
-R2-ITA(config)# interface Lo1
-R2-ITA(config-if)# description Core router network link 2
-R2-ITA(config-if)# ip address 192.168.1.1 255.255.255.0
-R2-ITA(config-if)# exit
-R2-ITA(config)# interface Serial1/0
-R2-ITA(config-if)# description R2-ITA -> R1-ISP1
-R2-ITA(config-if)# ip address 10.0.0.2 255.255.255.252
-R2-ITA(config-if)# no shutdown
-R2-ITA(config-if)# exit
-R2-ITA(config)# interface Serial1/1
-R2-ITA(config-if)# description R2-ITA -> R3-ISP2
-R2-ITA(config-if)# ip address 172.16.0.2 255.255.255.252
-R2-ITA(config-if)# clock rate 128000
-R2-ITA(config-if)# no shutdown
-R2-ITA(config-if)# end
-
-! R3-ISP2
-R3-ISP2(config)# interface Lo0
-R3-ISP2(config-if)# description R3-ISP2 Internet Network
-R3-ISP2(config-if)# ip address 172.16.1.1 255.255.255.0
-R3-ISP2(config-if)# exit
-R3-ISP2(config)# interface Serial1/1
-R3-ISP2(config-if)# description R3-ISP2 -> R2-ITA
-R3-ISP2(config-if)# ip address 172.16.0.1 255.255.255.252
-R3-ISP2(config-if)# no shutdown
-R3-ISP2(config-if)# end
+ssh username@172.20.20.11
+sudo vtysh
 ```
 
-Test connectivity between directly connected routers using `ping`. Note that R1-ISP1 and R3-ISP2 cannot reach each other yet, as they are not directly connected.
+<blockquote class="tip">
+The interfaces are already assigned to the correct VLANs. You only need to configure the IP addresses on the interfaces.
+</blockquote>
 
-## Task 2: Configure BGP Peering and Advertise Networks
+Configure the IPv4 addresses on bgp1:
 
-Configure BGP on the ISP routers to peer with R2-ITA and advertise their loopback networks. Then configure BGP on R2-ITA to peer with both ISPs and advertise its core networks.
+```
+configure terminal
+
+interface eth1
+ip address <your-isp1-peering-ip>/<mask>
+exit
+
+interface eth2
+ip address <bgp1-to-bgp2-ip>/<mask>
+exit
+
+interface eth3
+ip address <bgp1-to-ds1-ip>/<mask>
+exit
+
+interface lo
+ip address <bgp1-loopback-ip>/24
+exit
+
+end
+```
+
+Verify the configuration:
+
+```
+show interface brief
+```
+
+<blockquote class="tip">
+There might be minor difference between FRR and Cisco IOS CLI commands. The "show interface brief" command is an example, as FRR does not have "show ip interface brief".
+</blockquote>
+
+### Configure bgp2 Interfaces
+
+Connect to bgp2:
 
 ```bash
-! R1-ISP1
-R1-ISP1(config)# router bgp 200
-R1-ISP1(config-router)# neighbor 10.0.0.2 remote-as 100
-R1-ISP1(config-router)# network 10.1.1.0 mask 255.255.255.0
-
-! R3-ISP2
-R3-ISP2(config)# router bgp 300
-R3-ISP2(config-router)# neighbor 172.16.0.2 remote-as 100
-R3-ISP2(config-router)# network 172.16.1.0 mask 255.255.255.0
-
-! R2-ITA
-R2-ITA(config)# router bgp 100
-R2-ITA(config-router)# neighbor 10.0.0.1 remote-as 200
-R2-ITA(config-router)# neighbor 172.16.0.1 remote-as 300
-R2-ITA(config-router)# network 192.168.0.0
-R2-ITA(config-router)# network 192.168.1.0
+ssh username@172.20.20.12
+sudo vtysh
 ```
 
-### Explanation
-- ISP routers (AS 200 & 300) peer with R2-ITA (AS 100) and advertise their Internet loopbacks.
-- R2-ITA peers with both ISPs and advertises its internal core networks (Lo0 & Lo1).
-- BGP adjacency messages (`%BGP-5-ADJCHANGE`) should appear on the console as neighbors reach the `Established` state.
+Configure the IPv4 addresses on bgp2:
 
-## Task 3: Verify BGP Operation and Connectivity
+```
+configure terminal
 
-Verify BGP peering and routing table entries on R2-ITA, then run a connectivity test across the topology.
+interface eth2
+ip address <bgp2-to-bgp1-ip>/<mask>
+exit
 
-```bash
-R2-ITA# show ip route
-R2-ITA# show ip bgp
+interface eth3
+ip address <bgp2-to-ds2-ip>/<mask>
+exit
+
+end
 ```
 
-**Expected Output Notes:**
-- `B` entries indicate BGP-learned routes.
-- An asterisk (`*`) marks a valid route, and an angle bracket (`>`) marks the best route installed in the routing table.
-- The local router ID is derived from the highest IP address on an active interface (typically 192.168.1.1).
+Verify the configuration:
 
-Test end-to-end connectivity using the Tcl script or individual pings:
-```bash
-R2-ITA# ping 10.1.1.1
-R2-ITA# ping 172.16.1.1
-R2-ITA# ping 192.168.0.1
 ```
-*Note: WAN serial subnets are not advertised in BGP, so ISPs cannot ping each other's serial interfaces directly.*
-
-## Task 4: Configure Route Filters to Prevent Transit Routing
-
-By default, R2-ITA advertises routes learned from one ISP to the other, making it a transit router. Configure an access list and apply it as an outbound route filter to only advertise R2-ITA's own networks.
-
-```bash
-R2-ITA(config)# access-list 1 permit 192.168.0.0 0.0.1.255
-R2-ITA(config)# router bgp 100
-R2-ITA(config-router)# neighbor 10.0.0.1 distribute-list 1 out
-R2-ITA(config-router)# neighbor 172.16.0.1 distribute-list 1 out
+show interface brief
 ```
 
-### Explanation
-- ACL 1 permits only the 192.168.0.0/22 range (covering Lo0 and Lo1).
-- The `distribute-list` applies the ACL to BGP updates sent to neighbors.
-- After applying the filter, clear BGP adjacencies to refresh the routing tables:
-```bash
-R2-ITA# clear ip bgp *
+### Please finish the interface configuration on ds1 and ds2 according to the lab topology. 
+
+## Task 3: Configure Route Filtering
+
+Route filtering is essential for BGP security, this is also a current RFC: RFC-8212 Default External BGP (EBGP) Route Propagation Behavior without Policies. This RFC states that, without the incoming filter, no routes will be accepted. Without the outgoing filter, no routes will be announced. You need to define route filters to control what routes you advertise and accept. 
+
+### Configure Prefix Lists
+
+On bgp1:
+
 ```
-- Verify on R3-ISP2 and R1-ISP1 that the route to the other ISP's loopback no longer appears in their routing tables.
+configure terminal
 
-## Task 5: Configure Floating Static Routes for Redundancy
+ip prefix-list PL_ALLOWED_PREFIX4 seq 10 permit <your-allocated-ipv4-prefix>
+ip prefix-list PL_ALLOWED_PREFIX4 seq 20 deny any
 
-Configure primary and backup default routes using floating statics. R1-ISP1 will be primary (lower AD), and R3-ISP2 will be backup (higher AD).
+ip prefix-list PL_IMPORT_LE24 seq 10 permit 0.0.0.0/0 le 24
 
-```bash
-R2-ITA(config)# ip route 0.0.0.0 0.0.0.0 10.0.0.1 210
-R2-ITA(config)# ip route 0.0.0.0 0.0.0.0 172.16.0.1 220
-```
-
-**Verification:**
-```bash
-R2-ITA# show ip route
-```
-You should see `Gateway of last resort is 10.0.0.1 to network 0.0.0.0` and an entry `S* 0.0.0.0/0 [210/0] via 10.0.0.1`.
-
-Test the default route by creating an unadvertised loopback on R1-ISP1 and pinging it from R2-ITA:
-```bash
-R1-ISP1(config)# interface Loopback100
-R1-ISP1(config-if)# ip address 192.168.100.1 255.255.255.0
-R2-ITA# ping 192.168.100.1 source 192.168.1.1
-```
-Success confirms the default route is functioning. Test fails if the primary link goes down and the backup route is used (due to missing reverse path on R1-ISP1).
-
-## Task 6: Propagate Default Route via BGP
-
-Remove the static default routes and configure R1-ISP1 to inject a default route into BGP.
-
-```bash
-! Remove static defaults on R2-ITA
-R2-ITA(config)# no ip route 0.0.0.0 0.0.0.0 10.0.0.1 210
-R2-ITA(config)# no ip route 0.0.0.0 0.0.0.0 172.16.0.1 220
-
-! Configure default-originate on R1-ISP1
-R1-ISP1(config)# router bgp 200
-R1-ISP1(config-router)# neighbor 10.0.0.2 default-originate
+end
 ```
 
-**Verification:**
-```bash
-R2-ITA# show ip route
+<blockquote class="tip">
+- `PL_ALLOWED_PREFIX4` ensures you only advertise your allocated prefix to the ISP
+- `PL_IMPORT_LE24` accepts routes with prefix length up to /24, rejecting more specific routes that could be used for attacks and reduce the size the overall internet routing table which is already more than 1M routes there. This is a common practise on the internet where the minimal advertisement prefix length is /24. 
+</blockquote>
+
+### Configure Route Maps
+
+On bgp1:
+
 ```
-You should now see `B* 0.0.0.0/0 [20/0] via 10.0.0.1`, indicating the default route is learned via BGP instead of static routing.
+configure terminal
+
+route-map RM_EXPORT_OUT4 permit 10
+match ip address prefix-list PL_ALLOWED_PREFIX4
+exit
+
+route-map RM_IMPORT_IN4 permit 10
+match ip address prefix-list PL_IMPORT_LE24
+exit
+
+end
+
+```
+
+## Task 4: Configure IPv4 BGP on bgp1
+
+### Enable BGP Process and Configure Neighbor
+
+On bgp1:
+
+```
+configure terminal
+router bgp <your-asn>
+bgp router-id <router-id>
+
+no bgp default ipv4-unicast
+
+neighbor <isp-peering-ip> remote-as <isp-asn>
+
+network <your-allocated-ipv4-prefix>
+neighbor <isp-peering-ip> route-map RM_IMPORT_IN4 in
+neighbor <isp-peering-ip> route-map RM_EXPORT_OUT4 out
+
+end
+```
+
+<blockquote class="tip">
+The route maps ensure you only advertise your allocated prefix and only accept routes with prefix length up to /24 from the ISP. This is the common practice on the internet where you are only authorized to advertise the prefix you are allocated.
+Since the ISP1 behaves like an Internet Exchange (IX), it does not provide IP transit, i.e., internet access. You will not get a full table of the internet or a default route from ISP1.
+The `no bgp default ipv4-unicast` command disables the default route advertisement. This will give you the explicit configuration on the BGP, otherwise FRR will automatically add any neighbour to address-family IPv4, including the ones with an IPv6 address. 
+</blockquote>
+
+### Verify BGP Session
+
+Check the BGP neighbor status:
+
+```
+show ip bgp ipv4 summary
+show ip bgp ipv4 neighbors <isp-peering-ip>
+```
+
+The neighbor state should show `Established`. If it shows `Active` or `Idle`, check:
+- Interface IP configuration
+- AS numbers match on both sides
+- Network connectivity to the ISP1 peering IP
+
+## Task 5: Configure OSPF on bgp1
+
+OSPF provides routing between your BGP routers and distribution switches, creating a backup path if one of the link on the primary BGP router becomes unavailable.
+
+### Enable OSPF Process
+
+On bgp1:
+
+```
+configure terminal
+router ospf
+ospf router-id <router-id>
+log-adjacency-changes
+default-information originate always
+end
+```
+
+<blockquote class="tip">
+The `default-information originate always` command advertises a default route to OSPF neighbors, even if the router doesn't have a default route in its routing table. This ensures internal devices always send traffic not in their routing table to bgp1.
+</blockquote>
+
+### Enable OSPF on Interfaces
+
+On bgp1, enable OSPF on internal interfaces and loopback:
+
+```
+configure terminal
+
+interface eth2
+ip ospf area 0
+exit
+
+interface eth3
+ip ospf area 0
+exit
+
+interface lo
+ip ospf area 0
+exit
+
+end
+```
+
+## Task 6: Configure OSPF on bgp2
+
+Configure OSPF on bgp2 to participate in internal routing:
+
+### Enable OSPF Process
+
+On bgp2:
+
+```
+configure terminal
+router ospf
+ospf router-id <router-id>
+log-adjacency-changes
+end
+```
+
+### Enable OSPF on Interfaces
+
+On bgp2:
+
+```
+configure terminal
+
+interface eth2
+ip ospf area 0
+exit
+
+interface eth3
+ip ospf area 0
+exit
+
+end
+```
+
+## Task 7: Configure OSPF on Distribution Switches
+
+Configure OSPF on ds1:
+
+```
+configure terminal
+router ospf
+ospf router-id <router-id>
+
+interface eth1
+ip ospf area 0
+exit
+
+interface eth2
+ip ospf area 0
+exit
+
+end
+```
+
+Configure OSPF on ds2:
+
+```
+configure terminal
+router ospf
+ospf router-id <router-id>
+
+interface eth1
+ip ospf area 0
+exit
+
+interface eth2
+ip ospf area 0
+exit
+
+end
+```
+
+### Verify OSPF Neighbors
+
+Check OSPF neighbor relationships:
+
+```
+show ip ospf neighbor
+```
+
+You should see neighbor relationships in `Full` state.
+
+### Verify OSPF Routes
+
+Check the routing table for OSPF-learned routes:
+
+```
+show ip route ospf
+```
+
+Routes learned via OSPF will be marked with `O`.
+
+## Task 8: Verify BGP Operation
+
+### Test BGP Route Advertisement
+
+From bgp1, verify your prefix is being advertised:
+
+```
+show ip bgp ipv4 summary
+show ip bgp ipv4 neighbors <isp1-peering-ip> advertised-routes
+```
+
+## Task 9: Verify Route Reception Using Looking Glass
+
+The looking glass server at `151.158.219.14` (accessible within the university network) allows you to verify your BGP announcements from an external perspective.
+
+### Query Your Prefix
+
+Use the looking glass to search for your ASN and advertised routes:
+
+1. Select rs1 in the left panel, this is your isp1's routing information
+2. Search for your ASN in the right panel
+3. Verify that:
+   - Your prefix is visible in the ISP's routing table
+   - The AS path shows your AS number
+   - The next-hop (gateway) is correct
+
+<blockquote class="warning">
+The looking glass at 151.158.219.14 is only accessible from within the university network. If you cannot access it, verify you are connected via the university network.
+</blockquote>
+
+## Task 10: Test OSPF Backup Path
+
+To verify the OSPF backup path works correctly:
+
+### Verify Internal Routing
+
+From ds1, verify you can reach bgp1's loopback via OSPF:
+
+```
+ping <bgp1-loopback-ip>
+traceroute <bgp1-loopback-ip>
+```
+
+### Simulate Link Failure
+
+Temporarily shut down the link on bgp1 to ds1:
+
+```
+configure terminal
+interface eth3
+shutdown
+end
+```
+
+### Verify Internal Connectivity
+
+Check that ds1 can still reach bgp1's loopback:
+
+```
+show ip route ospf
+traceroute <bgp1-loopback-ip>
+```
+
+See the difference between the traceroute paths before and after the link failure.
+
+### Restore Link Connection
+
+After testing the backup path, re-enable the interface on bgp1:
+
+```
+configure terminal
+interface eth3
+no shutdown
+end
+```
+
+## Task 11: Verify Learned BGP Routes and Connectivity to Peers
+
+### Check Received BGP Routes
+First, verify that you have successfully received IPv4 prefixes from other peers connected to the ISP/IX. On bgp1, view all learned BGP routes:
+
+```
+show ip bgp ipv4
+```
+
+### Test Connectivity to Peer Networks
+From any internal router (e.g., ds1), test connectivity to an IPv4 prefix learned from another peer at the IX to confirm end-to-end routing works:
+
+```
+ping <ip-from-learned-ipv4-prefix>
+traceroute <ip-from-learned-ipv4-prefix>
+```
+
 
 ## Verification Checklist
 
-- [ ] BGP neighbors on R1-ISP1, R2-ITA, and R3-ISP2 reach `Established` state
-- [ ] ISP loopbacks (10.1.1.0/24 & 172.16.1.0/24) are visible in R2-ITA's routing table
-- [ ] Route filtering successfully prevents R3-ISP2 from learning 10.1.1.0/24 via R2-ITA
-- [ ] Floating static route installs as gateway of last resort (Administrative Distance 210)
-- [ ] Backup static route appears in the table with Administrative Distance 220
-- [ ] Extended ping to unadvertised network succeeds using the primary path
-- [ ] Default route is successfully propagated and learned via BGP (`B* 0.0.0.0/0`)
+- [ ] IPv4 addresses configured on all interfaces (bgp1, bgp2, ds1, ds2)
+- [ ] Prefix lists and route maps configured for route filtering
+- [ ] BGP session with ISP is in `Established` state
+- [ ] Your allocated IPv4 prefix is advertised to the ISP
+- [ ] Routes from IX peers are received
+- [ ] OSPF neighbors are in `Full` state on all routers
+- [ ] OSPF routes are present in the routing table
+- [ ] Default IPv4 route is propagated to internal routers via OSPF
+- [ ] Your prefix is visible on the looking glass
+- [ ] Connectivity to other peers is working
+- [ ] Configuration saved on all devices
 
 ## Common Issues
 
 | Issue | Solution |
 |-------|----------|
-| BGP neighbors stuck in `Idle` or `Active` | Verify IP addressing, ensure `clock rate` is set on DCE ends, and confirm AS numbers match neighbor configurations |
-| Route filter not taking effect immediately | BGP does not automatically refresh outbound updates. Use `clear ip bgp *` or `clear ip bgp * out` to force a new advertisement |
-| Extended ping to unadvertised network fails | Ensure the default route points toward the ISP hosting the test network. Reverse path routing must exist for ICMP replies |
-| BGP table version mismatch between routers | Normal behavior; version increments when routes are updated, neighbors reset, or policies change |
-| Transit routing still occurs | Verify ACL is correctly applied with `distribute-list 1 out` and that `clear ip bgp *` was executed |
+| BGP neighbor stuck in `Idle` | Check interface IP configuration and verify network connectivity to ISP peering IP |
+| BGP neighbor stuck in `Active` | Verify AS numbers match on both sides; check for firewall blocking TCP port 179 |
+| Prefix not advertised | Ensure the network statement matches exactly; verify the route exists |
+| OSPF neighbors not forming | Check that interfaces have `ip ospf area 0` configured |
+| Looking glass shows no route | Wait a few minutes for propagation; verify BGP session is established |
+| Route filtering not working | Verify prefix-lists and route-maps are correctly applied to neighbors |
 
-## Cleanup
+## Troubleshooting Commands
 
-Restore the routers to their initial state by removing all configurations applied during this lab:
+| Command | Purpose |
+|---------|---------|
+| `show ip bgp ipv4 summary` | View BGP neighbor status |
+| `show ip bgp ipv4` | View BGP routing table |
+| `show ip bgp ipv4 neighbors <ip> advertised-routes` | View routes sent to neighbor |
+| `show ip ospf neighbor` | View OSPF neighbor relationships |
+| `show ip route` | View complete routing table |
+| `show ip route ospf` | View OSPF-learned routes |
+| `show interface brief` | View IP interface status |
+| `show ip prefix-list` | View configured prefix lists |
+| `show route-map` | View configured route maps |
 
-```bash
-! R2-ITA
-R2-ITA# configure terminal
-R2-ITA(config)# router bgp 100
-R2-ITA(config-router)# no neighbor 10.0.0.1 distribute-list 1 out
-R2-ITA(config-router)# no neighbor 172.16.0.1 distribute-list 1 out
-R2-ITA(config-router)# exit
-R2-ITA(config)# no access-list 1
-R2-ITA(config)# end
-R2-ITA# write erase
-R2-ITA# reload
+## Configuration Save
 
-! R1-ISP1 & R3-ISP2
-R1-ISP1# configure terminal
-R1-ISP1(config)# router bgp 200
-R1-ISP1(config-router)# no neighbor 10.0.0.2 default-originate
-R1-ISP1(config-router)# no neighbor 10.0.0.2 remote-as 100
-R1-ISP1(config-router)# no network 10.1.1.0 mask 255.255.255.0
-R1-ISP1(config-router)# end
-R1-ISP1# write erase
-R1-ISP1# reload
+Save your configurations on all devices:
 
-R3-ISP2# configure terminal
-R3-ISP2(config)# router bgp 300
-R3-ISP2(config-router)# no neighbor 172.16.0.2 remote-as 100
-R3-ISP2(config-router)# no network 172.16.1.0 mask 255.255.255.0
-R3-ISP2(config-router)# end
-R3-ISP2# write erase
-R3-ISP2# reload
+```
+write memory
+```
+
+Or:
+
+```
+copy running-config startup-config
 ```
 
 ## Conclusion
 
-In this lab, you configured BGP to establish multihomed ISP connectivity, learned how to advertise and filter routes to prevent unwanted transit routing, implemented floating static routes for default path redundancy, and propagated a default route into the BGP domain. These techniques are fundamental for designing fault-tolerant, scalable enterprise edge networks that interact with multiple service providers.
+In this lab, you successfully configured IPv4 BGP peering with an ISP router and established OSPF routing for internal redundancy. You learned how to:
+
+- Configure IPv4 BGP peering with an ISP (IX-like environment)
+- Implement route filtering using prefix-lists and route-maps
+- Configure OSPF for IPv4 internal routing and backup paths
+- Advertise default routes to internal network via OSPF
+- Verify BGP announcements using a looking glass
+- Test and troubleshoot BGP and OSPF configurations
+
+<blockquote class="tip">
+Since the ISP behaves like an Internet Exchange (IX), it does not provide transit or a default route. You receive routes from other peers at the IX, and use `default-information originate always` in OSPF to provide a default route to internal devices.
+</blockquote>
+
+In the next lab, you will extend this configuration to support IPv6 multi-homed BGP with OSPFv3 for IPv6 infrastructure.

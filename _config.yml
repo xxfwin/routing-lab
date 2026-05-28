@@ -5,6 +5,7 @@ theme: minima
 
 header_pages:
   - index.md
+  - labs/lab-0.md
   - labs/lab-1.md
   - labs/lab-2.md
   - labs/lab-3.md

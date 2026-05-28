@@ -12,38 +12,42 @@ This site contains comprehensive lab instructions for the routing unit. You will
 
 | Lab | Topic | Duration | Description |
 |-----|-------|----------|-------------|
-| [Lab 1](/labs/lab-1) | Basic Static Routing | 60 min | Learn to configure and verify static routes |
-| [Lab 2](/labs/lab-2) | Dynamic Routing with OSPF | 90 min | Configure OSPF in a multi-router environment |
-| [Lab 3](/labs/lab-3) | BGP Configuration | 120 min | Set up eBGP between autonomous systems |
+| [Lab 0](/labs/lab-0) | Environment Setup | 15 min | SSH access, lab topology, and FRR terminal basics |
+| [Lab 1](/labs/lab-1) | IPv4 BGP and OSPF | 90 min | Configure IPv4 BGP peering with ISP and OSPF backup path |
+| [Lab 2](/labs/lab-2) | IPv6 Multi-homed BGP | 120 min | Set up multi-homed IPv6 BGP with OSPFv3 redundancy |
+| [Lab 3](/labs/lab-3) | BGP Traffic Engineering | 90 min | Control traffic using AS-prepend, local-pref, and communities |
 
 ## Learning Objectives
 
 By completing these labs, you will be able to:
 
-- Configure static routes and understand when to use them
-- Implement OSPF for dynamic routing in enterprise networks
-- Set up BGP for inter-domain routing
-- Troubleshoot common routing issues
-- Verify and document routing configurations
+- Configure IPv4 BGP peering with ISP routers
+- Implement OSPF for internal routing and backup paths
+- Set up multi-homed IPv6 BGP for redundancy
+- Configure OSPFv3 for IPv6 infrastructure
+- Apply BGP traffic engineering techniques (AS-prepend, local-pref, communities)
+- Verify and troubleshoot routing configurations using looking glass tools
 
 ## Prerequisites
 
 Before starting the labs, ensure you have:
 
-1. Basic understanding of TCP/IP networking
+1. Basic understanding of TCP/IP networking (IPv4 and IPv6)
 2. Familiarity with IP addressing and subnetting
-3. Access to network simulation software (GNS3, Packet Tracer) or physical equipment
-4. Console access to routers
+3. Understanding of routing concepts (static routing, dynamic routing)
+4. SSH client and terminal application
+5. Credentials provided by your instructor (SSH key, AS number, allocated prefixes)
 
 ## Getting Started
 
-Begin with [Lab 1: Basic Static Routing](/labs/lab-1) and progress through each lab sequentially. Each lab builds upon concepts from previous exercises.
+Begin with [Lab 0: Environment Setup](/labs/lab-0) and progress through each lab sequentially. Each lab builds upon concepts from previous exercises.
 
 ## Resources
 
-- [Cisco IOS Command Reference](https://www.cisco.com/c/en/us/support/ios-nx-os-software/ios-15-m-t/products-command-reference-list.html)
+- [FRR Documentation](https://docs.frrouting.org/)
 - [OSPF Design Guide](https://www.cisco.com/c/en/us/support/docs/ip/open-shortest-path-first-ospf/7039-1.html)
 - [BGP Configuration Guide](https://www.cisco.com/c/en/us/support/docs/ip/border-gateway-protocol-bgp/26634-bgp-toc.html)
+- [Looking Glass](http://151.158.219.14) (accessible within university network)
 
 ## Need Help?
 
