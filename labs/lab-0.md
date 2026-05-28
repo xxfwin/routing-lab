@@ -68,7 +68,7 @@ whoami
 
 The lab environment consists of multiple network nodes running FRR. Each node has a management IP address that you can use to connect directly.
 
-![Management Network Topology](/routing-lab/assets/image/mgmt_topo.png)
+<img src="/routing-lab/assets/image/mgmt_topo.png" alt="Management Network Topology" style="width: 100%; max-width: 100%; height: auto;">
 
 ### Node Information
 

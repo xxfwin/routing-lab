@@ -51,7 +51,7 @@ Your enterprise network consists of:
 
 The ISP peers with your bgp1 router. Your internal network uses OSPF for routing between BGP routers and distribution switches.
 
-![IPv4 BGP Topology](/routing-lab/assets/image/IPv4_BGP.png)
+<img src="/routing-lab/assets/image/IPv4_BGP.png" alt="IPv4 BGP Topology" style="width: 100%; max-width: 100%; height: auto;">
 
 ## Task 1: Configure IPv4 Addresses on BGP Routers
 

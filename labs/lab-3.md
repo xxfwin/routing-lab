@@ -44,7 +44,7 @@ Your multi-homed network has two ISP connections:
 
 Both BGP routers peer with ISP routers on separate connections, providing redundancy. OSPFv3 provides routing between BGP routers and distribution switches.
 
-![IPv6 BGP Topology](/routing-lab/assets/image/IPv6_BGP.png)
+<img src="/routing-lab/assets/image/IPv6_BGP.png" alt="IPv6 BGP Topology" style="width: 100%; max-width: 100%; height: auto;">
 
 ## Scenario: Traffic Optimization Tickets
 
