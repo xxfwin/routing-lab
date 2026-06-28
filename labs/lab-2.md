@@ -23,10 +23,11 @@ Building on Lab 1, you will now configure multi-homed IPv6 BGP peering with two 
 
 Multi-homing is a critical design pattern for enterprise networks that require high availability and optimal path selection.
 
-[!warning]
-This lab involves configuring public IPv6 prefixes that will be advertised to the global internet. Always follow these security guidelines:
+<blockquote class="warning">
+This lab involves modifying BGP policies that affect routes advertised to the global internet. Always follow these security guidelines:
 1. Never share sensitive network and server details (including your ASN, internal addressing, username, password, etc.) in public
 2. Ensure route filtering is properly implemented to avoid unintentionally advertising invalid routes to the global internet
+</blockquote>
 
 ## Prerequisites
 
@@ -449,7 +450,7 @@ Check that both ISP paths are available:
 show ip bgp ipv6 2001:4860:4860::8888
 ```
 
-2001:4860:4860::8888 is an example target network address. You should see multiple paths with different next-hops.
+2001:4860:4860::8888 is an example target network address. You should see multiple paths with different next-hops. If not, please try it on another BGP router. 
 
 ## Task 10: Verify Using Looking Glass
 
@@ -472,12 +473,13 @@ The looking glass at 151.158.219.14 is only accessible from within the universit
 
 ### Public BGP Looking Glasses
 
-Use public BGP looking glasses to verify your IPv6 prefix is announced globally, please do not generate a lot of query in a short time, since those services are shared resources: 
+Pick up one of the public BGP looking glasses to verify your IPv6 prefix is announced globally, please do not generate a lot of query in a short time, since those services are shared resources: 
 
 1. **Route Views** (https://lg.routeviews.org/lg)
 2. **Hurricane Electric BGP Toolkit** (https://bgp.he.net/)
 3. **BGPlay** (https://stat.ripe.net/widget/bgplay)
 4. **bgp.tools** (https://bgp.tools/)
+5. **NTT Data Looking Glass** (https://www.gin.ntt.net/looking-glass-landing/)
 
 Query your allocated IPv6 prefix and verify:
 - The prefix is visible from multiple locations

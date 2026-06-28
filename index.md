@@ -52,6 +52,7 @@ Begin with [Lab 0: Environment Setup](/routing-lab/labs/lab-0) and progress thro
 - [Looking Glass](http://151.158.219.14) (accessible within university network)
 - [Hurricane Electric BGP Toolkit](https://bgp.he.net/)
 - [bgp.tools](https://bgp.tools/)
+- [Well-known Communities](https://www.iana.org/assignments/bgp-well-known-communities/bgp-well-known-communities.xhtml)
 
 ## RFCs and RIR policies related to the resource allocation
 
