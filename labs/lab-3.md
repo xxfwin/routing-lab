@@ -192,9 +192,8 @@ exit
 end
 ```
 
-<blockquote class="tip">
 By inserting sequence number 5 before the existing sequence 10, the local preference is set for the dev team's destination prefix before the general import filter applies. Routes matching `DEV-DEST6` will get local preference 150 and still pass through the import filter (since `2001:df6:bf40::/48` is within the `/0 le 48` range allowed by `PL_IMPORT_GT48`). All other routes continue to be processed by sequence 10 with the default local preference of 100. Since local preference is propagated via iBGP, both bgp1 and bgp2 will see the higher local preference and consistently route traffic to `2001:df6:bf40::/48` via ISP1.
-</blockquote>
+
 
 ### Task 2.3: Verify Local Preference
 
@@ -263,9 +262,8 @@ exit
 end
 ```
 
-<blockquote class="tip">
 By inserting sequence number 5 before the existing sequence 10, routes tagged with community `20473:200` get local preference 120 before the general import filter applies. These routes still pass through the import filter (since IXP peer prefixes are within the `/0 le 48` range allowed by `PL_IMPORT_GT48`). All other routes continue to be processed by sequence 10 with the default local preference of 100. Since local preference is propagated via iBGP, bgp1 will also prefer ISP2 for IXP peer destinations.
-</blockquote>
+
 
 ### Task 3.3: Verify Community-Based Policy
 
@@ -326,9 +324,7 @@ show ip bgp ipv6 <chosen-prefix>
    - Would you use AS-prepend, local preference, or a community-based policy?
    - What are the potential side effects of your change?
 
-<blockquote class="tip">
 There is no single correct answer — the goal is to practice analyzing real routing data and making informed decisions. Discuss your findings and proposed changes with your instructor or classmates.
-</blockquote>
 
 ---
 
