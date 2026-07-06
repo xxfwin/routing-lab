@@ -129,15 +129,15 @@ end
 To exit FRR and return to the node shell:
 
 ```bash
-hostname
-exit
+bgp1# exit
+username@bgp1:~$ 
 ```
 
 To exit the node and return to your VM:
 
 ```bash
-hostname
-exit
+username@bgp1:~$ exit
+username@your_host_name:~$ 
 ```
 
 ## Verification Checklist
