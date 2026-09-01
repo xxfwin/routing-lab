@@ -197,6 +197,8 @@ network <your-allocated-ipv4-prefix>
 neighbor <isp-peering-ip> route-map RM_IMPORT_IN4 in
 neighbor <isp-peering-ip> route-map RM_EXPORT_OUT4 out
 
+neighbor <isp-peering-ip> activate
+
 end
 ```
 

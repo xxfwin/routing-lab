@@ -220,11 +220,13 @@ neighbor <isp1-ipv6-peering-ip> remote-as <isp1-asn>
 
 address-family ipv6 unicast
 network <your-allocated-ipv6-prefix>
-neighbor <bgp2-loopback-ipv6> activate
+
 neighbor <bgp2-loopback-ipv6> next-hop-self
-neighbor <isp1-ipv6-peering-ip> activate
+neighbor <bgp2-loopback-ipv6> activate
+
 neighbor <isp1-ipv6-peering-ip> route-map RM_IMPORT_IN6 in
 neighbor <isp1-ipv6-peering-ip> route-map RM_EXPORT_OUT6 out
+neighbor <isp1-ipv6-peering-ip> activate
 exit-address-family
 
 end
@@ -264,11 +266,13 @@ neighbor <isp2-ipv6-peering-ip> remote-as <isp2-asn>
 
 address-family ipv6 unicast
 network <your-allocated-ipv6-prefix>
-neighbor <bgp1-loopback-ipv6> activate
+
 neighbor <bgp1-loopback-ipv6> next-hop-self
-neighbor <isp2-ipv6-peering-ip> activate
+neighbor <bgp1-loopback-ipv6> activate
+
 neighbor <isp2-ipv6-peering-ip> route-map RM_IMPORT_IN6 in
 neighbor <isp2-ipv6-peering-ip> route-map RM_EXPORT_OUT6 out 
+neighbor <isp2-ipv6-peering-ip> activate
 exit-address-family
 
 end
