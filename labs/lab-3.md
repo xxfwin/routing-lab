@@ -124,15 +124,15 @@ Since you want inbound traffic to prefer ISP2, you need to make the path through
 configure terminal
 
 route-map RM_EXPORT_OUT6 permit 10
- match ipv6 address prefix-list PL_ALLOWED_PREFIX
- set as-path prepend 64632
+ match ipv6 address prefix-list PL_ALLOWED_PREFIX6
+ set as-path prepend <your-asn>
 exit
 
 # BGP has configured to use RM_EXPORT_OUT6 for export filtering
 end
 ```
 
-A single prepend (`<your-asn>` once) makes the path through ISP1 slightly less desirable — just enough to tip the balance toward ISP2 without making ISP1 completely undesirable. If you need a stronger shift, you can prepend multiple times (e.g., `<your-asn> <your-asn> <your-asn>` for 3 prepends). The second sequence (20) allows all other prefixes to be advertised normally without prepending.
+A single prepend (`<your-asn>` once) makes the path through ISP1 slightly less desirable — just enough to tip the balance toward ISP2 without making ISP1 completely undesirable. If you need a stronger shift, you can prepend multiple times (e.g., `<your-asn> <your-asn> <your-asn>` for 3 prepends). The second sequence (20) allows all other prefixes to be advertised normally without prepending. 
 
 In Lab 2, you already configured route-maps for route filtering (e.g., `RM_EXPORT_OUT6`). When applying a new route-map to a neighbor, it replaces the previous one. If you need to combine filtering with AS-prepend, merge the match conditions into a single route-map. For example, include both the prefix-list match from your export filter and the `set as-path prepend` statement in the same route-map entry.
 

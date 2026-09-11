@@ -618,8 +618,8 @@ end
 Check that bgp1 can still reach bgp2's loopback:
 
 ```
-show ip route ospf
-traceroute <bgp2-loopback-ip>
+show ipv6 route ospf6
+traceroute ipv6 <bgp2-loopback-ipv6>
 ```
 
 See the difference between the traceroute paths before and after the link failure.
