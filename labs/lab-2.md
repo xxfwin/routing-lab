@@ -147,149 +147,7 @@ show interface brief json
 
 ### Please finish the interface configuration on ds1 and ds2 according to the lab topology. 
 
-## Task 2: Configure Null Route for Advertised Prefix
-
-Create a static null route for your allocated prefix. This ensures the prefix exists in the routing table for BGP to advertise:
-
-On bgp1 and bgp2:
-
-```
-configure terminal
-ipv6 route <your-allocated-ipv6-prefix> Null0
-end
-```
-
-## Task 3: Configure Route Filtering
-
-Route filtering is essential for BGP security. You need to control what routes you advertise and accept.
-
-### Configure Prefix Lists
-
-On bgp1 and bgp2:
-
-```
-configure terminal
-
-ipv6 prefix-list PL_ALLOWED_PREFIX6 seq 10 permit <your-allocated-ipv6-prefix>
-ipv6 prefix-list PL_ALLOWED_PREFIX6 seq 20 deny any
-
-ipv6 prefix-list PL_IMPORT_GT48 seq 10 permit ::/0 le 48
-
-end
-```
-
-<blockquote class="tip">
-- `PL_ALLOWED_PREFIX6` ensures you only advertise your allocated prefix to ISPs
-- `PL_IMPORT_GT48` accepts routes with prefix length up to /48, this is the common practice on the internet where the minimal prefix size is /48.
-</blockquote>
-
-### Configure Route Maps
-
-On bgp1 and bgp2:
-
-```
-configure terminal
-
-route-map RM_EXPORT_OUT6 permit 10
-match ipv6 address prefix-list PL_ALLOWED_PREFIX6
-exit
-
-route-map RM_IMPORT_IN6 permit 10
-match ipv6 address prefix-list PL_IMPORT_GT48
-exit
-
-end
-```
-
-## Task 4: Configure IPv6 BGP on bgp1
-
-### Enable BGP Process and Configure Neighbors
-
-On bgp1:
-
-```
-configure terminal
-router bgp <your-asn>
-bgp router-id <router-id>
-no bgp default ipv4-unicast
-
-neighbor <bgp2-loopback-ipv6> remote-as <your-asn>
-neighbor <bgp2-loopback-ipv6> update-source lo
-
-neighbor <isp1-ipv6-peering-ip> remote-as <isp1-asn>
-
-address-family ipv6 unicast
-network <your-allocated-ipv6-prefix>
-
-neighbor <bgp2-loopback-ipv6> next-hop-self
-neighbor <bgp2-loopback-ipv6> activate
-
-neighbor <isp1-ipv6-peering-ip> route-map RM_IMPORT_IN6 in
-neighbor <isp1-ipv6-peering-ip> route-map RM_EXPORT_OUT6 out
-neighbor <isp1-ipv6-peering-ip> activate
-exit-address-family
-
-end
-```
-
-<blockquote class="tip">
-The eBGP neighbor establishes a peering session with ISP1, while the iBGP peering session is configured with your internal bgp2 router. The iBGP neighbor uses the loopback address with `update-source lo` for stability and can utilize the alternative path from OSPFv3. The `next-hop-self` command ensures the iBGP neighbor advertises routes with the loopback address as the next hop, which is the default behavior.
-</blockquote>
-
-### Verify BGP Session
-
-Check the IPv6 BGP neighbor status:
-
-```
-show bgp ipv6 summary
-show bgp ipv6 neighbors
-```
-
-The neighbor state should show `Established`. Since your ISP is advertising the full table, which means it will give you all routes of the internet. Currently, the internet has about 250,000 routes. This means please try not use commands like `show ipv6 route` or `show ip bgp ipv6` to check the routing table. Instead, use commands like `show ipv6 route <query-ipv6-prefix>` to check the route to the prefix you want to know.
-
-## Task 5: Configure IPv6 BGP on bgp2
-
-### Enable BGP Process and Configure Neighbors
-
-On bgp2:
-
-```
-configure terminal
-router bgp <your-asn>
-bgp router-id <router-id>
-no bgp default ipv4-unicast
-
-neighbor <bgp1-loopback-ipv6> remote-as <your-asn>
-neighbor <bgp1-loopback-ipv6> update-source lo
-
-neighbor <isp2-ipv6-peering-ip> remote-as <isp2-asn>
-
-address-family ipv6 unicast
-network <your-allocated-ipv6-prefix>
-
-neighbor <bgp1-loopback-ipv6> next-hop-self
-neighbor <bgp1-loopback-ipv6> activate
-
-neighbor <isp2-ipv6-peering-ip> route-map RM_IMPORT_IN6 in
-neighbor <isp2-ipv6-peering-ip> route-map RM_EXPORT_OUT6 out 
-neighbor <isp2-ipv6-peering-ip> activate
-exit-address-family
-
-end
-```
-
-### Verify BGP Session
-
-Check the IPv6 BGP neighbor status:
-
-```
-show bgp ipv6 summary
-show bgp ipv6 neighbors
-```
-
-You should see both external (eBGP) and internal (iBGP) neighbors in `Established` state.
-
-## Task 6: Configure OSPFv3 on bgp1
+## Task 2: Configure OSPFv3 on bgp1
 
 OSPFv3 provides routing between your BGP routers and distribution switches for IPv6, creating backup paths if one BGP router becomes unavailable.
 
@@ -332,7 +190,7 @@ exit
 end
 ```
 
-## Task 7: Configure OSPFv3 on bgp2
+## Task 3: Configure OSPFv3 on bgp2
 
 ### Enable OSPFv3 Process
 
@@ -369,7 +227,7 @@ exit
 end
 ```
 
-## Task 8: Configure OSPFv3 on Distribution Switches
+## Task 4: Configure OSPFv3 on Distribution Switches
 
 Configure OSPFv3 on ds1:
 
@@ -426,6 +284,151 @@ show ipv6 route ospf6
 ```
 
 Routes learned via OSPFv3 will be marked with `O`.
+
+
+## Task 5: Configure Null Route for Advertised Prefix
+
+Create a static null route for your allocated prefix. This ensures the prefix exists in the routing table for BGP to advertise:
+
+On bgp1 and bgp2:
+
+```
+configure terminal
+ipv6 route <your-allocated-ipv6-prefix> Null0
+end
+```
+
+## Task 6: Configure Route Filtering
+
+Route filtering is essential for BGP security. You need to control what routes you advertise and accept.
+
+### Configure Prefix Lists
+
+On bgp1 and bgp2:
+
+```
+configure terminal
+
+ipv6 prefix-list PL_ALLOWED_PREFIX6 seq 10 permit <your-allocated-ipv6-prefix>
+ipv6 prefix-list PL_ALLOWED_PREFIX6 seq 20 deny any
+
+ipv6 prefix-list PL_IMPORT_GT48 seq 10 permit ::/0 le 48
+
+end
+```
+
+<blockquote class="tip">
+- `PL_ALLOWED_PREFIX6` ensures you only advertise your allocated prefix to ISPs
+- `PL_IMPORT_GT48` accepts routes with prefix length up to /48, this is the common practice on the internet where the minimal prefix size is /48.
+</blockquote>
+
+### Configure Route Maps
+
+On bgp1 and bgp2:
+
+```
+configure terminal
+
+route-map RM_EXPORT_OUT6 permit 10
+match ipv6 address prefix-list PL_ALLOWED_PREFIX6
+exit
+
+route-map RM_IMPORT_IN6 permit 10
+match ipv6 address prefix-list PL_IMPORT_GT48
+exit
+
+end
+```
+
+## Task 7: Configure IPv6 BGP on bgp1
+
+### Enable BGP Process and Configure Neighbors
+
+On bgp1:
+
+```
+configure terminal
+router bgp <your-asn>
+bgp router-id <router-id>
+no bgp default ipv4-unicast
+
+neighbor <bgp2-loopback-ipv6> remote-as <your-asn>
+neighbor <bgp2-loopback-ipv6> update-source lo
+
+neighbor <isp1-ipv6-peering-ip> remote-as <isp1-asn>
+
+address-family ipv6 unicast
+network <your-allocated-ipv6-prefix>
+
+neighbor <bgp2-loopback-ipv6> next-hop-self
+neighbor <bgp2-loopback-ipv6> activate
+
+neighbor <isp1-ipv6-peering-ip> route-map RM_IMPORT_IN6 in
+neighbor <isp1-ipv6-peering-ip> route-map RM_EXPORT_OUT6 out
+neighbor <isp1-ipv6-peering-ip> activate
+exit-address-family
+
+end
+```
+
+<blockquote class="tip">
+The eBGP neighbor establishes a peering session with ISP1, while the iBGP peering session is configured with your internal bgp2 router. The iBGP neighbor uses the loopback address with `update-source lo` for stability and can utilize the alternative path from OSPFv3. The `next-hop-self` command ensures the iBGP neighbor advertises routes with the loopback address as the next hop, which is the default behavior.
+</blockquote>
+
+### Verify BGP Session
+
+Check the IPv6 BGP neighbor status:
+
+```
+show bgp ipv6 summary
+show bgp ipv6 neighbors
+```
+
+The neighbor state should show `Established`. Since your ISP is advertising the full table, which means it will give you all routes of the internet. Currently, the internet has about 250,000 routes. This means please try not use commands like `show ipv6 route` or `show ip bgp ipv6` to check the routing table. Instead, use commands like `show ipv6 route <query-ipv6-prefix>` to check the route to the prefix you want to know.
+
+## Task 8: Configure IPv6 BGP on bgp2
+
+### Enable BGP Process and Configure Neighbors
+
+On bgp2:
+
+```
+configure terminal
+router bgp <your-asn>
+bgp router-id <router-id>
+no bgp default ipv4-unicast
+
+neighbor <bgp1-loopback-ipv6> remote-as <your-asn>
+neighbor <bgp1-loopback-ipv6> update-source lo
+
+neighbor <isp2-ipv6-peering-ip> remote-as <isp2-asn>
+
+address-family ipv6 unicast
+network <your-allocated-ipv6-prefix>
+
+neighbor <bgp1-loopback-ipv6> next-hop-self
+neighbor <bgp1-loopback-ipv6> activate
+
+neighbor <isp2-ipv6-peering-ip> route-map RM_IMPORT_IN6 in
+neighbor <isp2-ipv6-peering-ip> route-map RM_EXPORT_OUT6 out 
+neighbor <isp2-ipv6-peering-ip> activate
+exit-address-family
+
+end
+```
+
+### Verify BGP Session
+
+Check the IPv6 BGP neighbor status:
+
+```
+show bgp ipv6 summary
+show bgp ipv6 neighbors
+```
+
+You should see both external (eBGP) and internal (iBGP) neighbors in `Established` state. 
+
+
 
 ## Task 9: Verify Multi-homed BGP Operation
 
