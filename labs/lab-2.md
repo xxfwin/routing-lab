@@ -506,6 +506,7 @@ Check the bgp route on bgp2:
 
 ```
 show ip bgp ipv6 2001:4860:4860::8888
+show ip bgp ipv6 2606:4700:4700::1111
 ```
 
 Test connectivity and path selection on ds1:
@@ -534,6 +535,7 @@ Check that traffic now flows through bgp2:
 
 ```
 show ip bgp ipv6 2001:4860:4860::8888
+show ip bgp ipv6 2606:4700:4700::1111
 ```
 
 On ds1, verify connectivity and path selection:
