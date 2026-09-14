@@ -312,6 +312,10 @@ interface eth3
 ip ospf area 0
 exit
 
+interface lo
+ip ospf area 0
+exit
+
 end
 ```
 
@@ -332,6 +336,10 @@ interface eth2
 ip ospf area 0
 exit
 
+interface lo
+ip ospf area 0
+exit
+
 end
 ```
 
@@ -347,6 +355,10 @@ ip ospf area 0
 exit
 
 interface eth2
+ip ospf area 0
+exit
+
+interface lo
 ip ospf area 0
 exit
 
