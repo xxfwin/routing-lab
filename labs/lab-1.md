@@ -86,7 +86,7 @@ ip address <bgp1-to-ds1-ip>/<mask>
 exit
 
 interface lo
-ip address <bgp1-loopback-ip>/24
+ip address <bgp1-loopback-ip>/32
 exit
 
 end
@@ -124,6 +124,10 @@ interface eth3
 ip address <bgp2-to-ds2-ip>/<mask>
 exit
 
+interface lo
+ip address <bgp2-loopback-ip>/32
+exit
+
 end
 ```
 
@@ -135,7 +139,19 @@ show interface brief
 
 ### Please finish the interface configuration on ds1 and ds2 according to the lab topology. 
 
-## Task 3: Configure Route Filtering
+## Task 3: Configure Null Route for Advertised Prefix
+
+Create a static null route for your allocated prefix. This ensures the prefix exists in the routing table for BGP to advertise:
+
+On bgp1:
+
+```
+configure terminal
+ip route <your-allocated-ipv4-prefix> Null0
+end
+```
+
+## Task 4: Configure Route Filtering
 
 Route filtering is essential for BGP security, this is also a current RFC: RFC-8212 Default External BGP (EBGP) Route Propagation Behavior without Policies. This RFC states that, without the incoming filter, no routes will be accepted. Without the outgoing filter, no routes will be announced. You need to define route filters to control what routes you advertise and accept. 
 
@@ -178,7 +194,7 @@ end
 
 ```
 
-## Task 4: Configure IPv4 BGP on bgp1
+## Task 5: Configure IPv4 BGP on bgp1
 
 ### Enable BGP Process and Configure Neighbor
 
@@ -222,7 +238,7 @@ The neighbor state should show `Established`. If it shows `Active` or `Idle`, ch
 - AS numbers match on both sides
 - Network connectivity to the ISP1 peering IP
 
-## Task 5: Configure OSPF on bgp1
+## Task 6: Configure OSPF on bgp1
 
 OSPF provides routing between your BGP routers and distribution switches, creating a backup path if one of the link on the primary BGP router becomes unavailable.
 
@@ -265,7 +281,7 @@ exit
 end
 ```
 
-## Task 6: Configure OSPF on bgp2
+## Task 7: Configure OSPF on bgp2
 
 Configure OSPF on bgp2 to participate in internal routing:
 
@@ -299,7 +315,7 @@ exit
 end
 ```
 
-## Task 7: Configure OSPF on Distribution Switches
+## Task 8: Configure OSPF on Distribution Switches
 
 Configure OSPF on ds1:
 
@@ -357,7 +373,7 @@ show ip route ospf
 
 Routes learned via OSPF will be marked with `O`.
 
-## Task 8: Verify BGP Operation
+## Task 9: Verify BGP Operation
 
 ### Test BGP Route Advertisement
 
@@ -368,7 +384,7 @@ show ip bgp ipv4 summary
 show ip bgp ipv4 neighbors <isp1-peering-ip> advertised-routes
 ```
 
-## Task 9: Verify Route Reception Using Looking Glass
+## Task 10: Verify Route Reception Using Looking Glass
 
 The looking glass server at `151.158.219.14` (accessible within the university network) allows you to verify your BGP announcements from an external perspective.
 
@@ -387,7 +403,7 @@ Use the looking glass to search for your ASN and advertised routes:
 The looking glass at 151.158.219.14 is only accessible from within the university network. If you cannot access it, verify you are connected via the university network.
 </blockquote>
 
-## Task 10: Test OSPF Backup Path
+## Task 11: Test OSPF Backup Path
 
 To verify the OSPF backup path works correctly:
 
@@ -433,7 +449,7 @@ no shutdown
 end
 ```
 
-## Task 11: Verify Learned BGP Routes and Connectivity to Peers
+## Task 12: Verify Learned BGP Routes and Connectivity to Peers
 
 ### Check Received BGP Routes
 First, verify that you have successfully received IPv4 prefixes from other peers connected to the ISP/IX. On bgp1, view all learned BGP routes:
